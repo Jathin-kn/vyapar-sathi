@@ -6,6 +6,16 @@ from datetime import date, timedelta
 def run_query(intent: dict) -> dict:
     """
     Run a Supabase REST query based on validated intent.
+    
+    The backend queries a transactional sales table with columns:
+    - date: Transaction date
+    - product: Product name
+    - category: Product category
+    - quantity: Number of units sold
+    - revenue: Sale amount
+    
+    Revenue aggregation works by summing the 'revenue' column across
+    all matching transactions in the date range.
     """
 
     # 🔒 Read and sanitize env vars
@@ -61,16 +71,27 @@ def run_query(intent: dict) -> dict:
         response = client.get(url, headers=headers, params=params)
         response.raise_for_status()
         rows = response.json()
+    
+    # Debug: Log response details
+    print(f"Supabase response status: {response.status_code}")
+    print(f"Data received: {'EMPTY' if not rows else f'NON-EMPTY ({len(rows)} rows)'}")
 
-    # Calculate metric
+    # Calculate metric from transactional data
     if metric == "sales":
+        # Count number of transactions
         value = len(rows)
     elif metric == "revenue":
+        # Sum revenue across all transactions in the date range
         value = sum(r.get("revenue", 0) for r in rows)
     elif metric == "expenses":
+        # Sum expenses (amount field)
         value = sum(r.get("amount", 0) for r in rows)
     else:
         value = 0
+    
+    # Return aggregated result and raw rows
+    # Empty rows[] is valid - just means no transactions in that date range
+    # Only the API error handler decides whether to fall back to demo
 
     return {
         "value": value,
