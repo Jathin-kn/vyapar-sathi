@@ -6,6 +6,7 @@ from app.services.intent_validator import validate_intent
 from app.services.query_engine import run_query
 from app.services.why_engine import analyze_change
 from app.services.demo_fallback import get_demo_fallback_answer
+from app.services.training_qa import get_trained_answer
 
 router = APIRouter(prefix="/api")
 
@@ -22,6 +23,11 @@ def handle_query(payload: QueryRequest):
     NOTE: Set DEMO_MODE = False in app.config after hackathon to restore strict behavior
     """
     try:
+        # Step 0: Check training QA first
+        trained_answer = get_trained_answer(payload.question)
+        if trained_answer is not None:
+            return trained_answer
+
         # ✅ ALWAYS define this first
         previous_value = None
         why_data = {}
